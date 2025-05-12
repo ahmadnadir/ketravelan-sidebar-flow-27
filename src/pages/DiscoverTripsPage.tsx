@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,6 +14,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { DateRange } from "react-day-picker";
 
 type Trip = {
   id: number;
@@ -36,10 +36,7 @@ type Trip = {
 export default function DiscoverTripsPage() {
   const [activeTab, setActiveTab] = useState<string>("community");
   const [location, setLocation] = useState<string>("");
-  const [dateRange, setDateRange] = useState<{
-    from?: Date;
-    to?: Date;
-  }>({});
+  const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [budget, setBudget] = useState<number[]>([2000]);
   
   // Filter trips based on selected filters
@@ -58,7 +55,7 @@ export default function DiscoverTripsPage() {
     }
     
     // Filter by date range if provided
-    if (dateRange.from && dateRange.to) {
+    if (dateRange?.from && dateRange?.to) {
       if (trip.startDate < dateRange.from || trip.endDate > dateRange.to) {
         return false;
       }
@@ -105,7 +102,7 @@ export default function DiscoverTripsPage() {
                     className="w-full justify-start text-left font-normal"
                   >
                     <Calendar className="mr-2 h-4 w-4" />
-                    {dateRange.from ? (
+                    {dateRange?.from ? (
                       dateRange.to ? (
                         <>
                           {format(dateRange.from, "MMM d")} -{" "}
@@ -123,7 +120,7 @@ export default function DiscoverTripsPage() {
                   <CalendarComponent
                     initialFocus
                     mode="range"
-                    defaultMonth={dateRange.from}
+                    defaultMonth={dateRange?.from}
                     selected={dateRange}
                     onSelect={setDateRange}
                     numberOfMonths={2}
@@ -158,7 +155,7 @@ export default function DiscoverTripsPage() {
                 variant="outline"
                 onClick={() => {
                   setLocation("");
-                  setDateRange({});
+                  setDateRange(undefined);
                   setBudget([2000]);
                 }}
                 className="w-full"
