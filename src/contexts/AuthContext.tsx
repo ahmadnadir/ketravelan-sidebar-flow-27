@@ -14,14 +14,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean>(true); // Default to true for demo
-  const [userRole, setUserRole] = useState<UserRole>("traveler"); // Default role
+  const [userRole, setUserRoleState] = useState<UserRole>("traveler"); // Default role
 
   const setAuthenticated = (value: boolean) => {
     setIsAuthenticated(value);
   };
 
   const setUserRole = (role: UserRole) => {
-    setUserRole(role);
+    setUserRoleState(role);
   };
 
   return (
