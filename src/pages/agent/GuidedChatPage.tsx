@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { User, Send, PaperclipIcon, DollarSign, Calendar, FileText, ChevronDown } from "lucide-react";
 import { useForm } from "react-hook-form";
@@ -14,10 +13,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Progress,
-  ProgressIndicator,
-} from "@/components/ui/progress";
+import { Progress } from "@/components/ui/progress";
 import {
   Collapsible,
   CollapsibleContent,
@@ -383,9 +379,7 @@ export default function GuidedChatPage() {
                             </span>
                             <span>${paymentStatus.total.toFixed(2)}</span>
                           </div>
-                          <Progress value={percentPaid} className="h-2">
-                            <ProgressIndicator />
-                          </Progress>
+                          <Progress value={percentPaid} className="h-2" />
                         </div>
                         
                         <CollapsibleContent>
