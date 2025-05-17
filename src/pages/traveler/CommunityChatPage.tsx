@@ -1,3 +1,4 @@
+
 import React, { useState } from "react";
 import { Send, User, Plus, DollarSign, MessageSquare, Wallet } from "lucide-react";
 import { format } from "date-fns";
@@ -336,7 +337,11 @@ export default function CommunityChatPage() {
                       <ExpenseForm 
                         onSubmit={(data) => {
                           handleAddExpense(data);
-                          document.querySelector('[data-radix-collection-item]')?.click();
+                          // Fixed line - this was trying to call click() on an Element which doesn't have this method
+                          const sheetCloseButton = document.querySelector('[data-radix-collection-item]');
+                          if (sheetCloseButton && sheetCloseButton instanceof HTMLElement) {
+                            sheetCloseButton.click();
+                          }
                         }} 
                         onOpenChange={() => {}}
                       />
