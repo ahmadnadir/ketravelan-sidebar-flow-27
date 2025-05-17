@@ -1,12 +1,13 @@
 
 import React, { useState } from "react";
-import { Send, User, Plus, DollarSign } from "lucide-react";
+import { Send, User, Plus, DollarSign, MessageSquare, Wallet } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import {
   Dialog,
   DialogContent,
@@ -151,6 +152,7 @@ const expenseSchema = z.object({
 export default function CommunityChatPage() {
   const [newMessage, setNewMessage] = useState("");
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
+  const [activeView, setActiveView] = useState("chat"); // "chat", "expenses", or "balances"
 
   const expenseForm = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
@@ -202,20 +204,125 @@ export default function CommunityChatPage() {
 
   return (
     <div className="container mx-auto">
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Chat Section */}
-        <div className="lg:col-span-2">
-          <Card className="h-[calc(100vh-12rem)]">
-            <CardHeader className="px-4 py-3 border-b">
-              <div className="flex items-center justify-between">
-                <div>
-                  <CardTitle className="text-lg">{tripTitle}</CardTitle>
-                  <CardDescription>6 participants</CardDescription>
-                </div>
-              </div>
-            </CardHeader>
+      <Card className="h-[calc(100vh-8rem)]">
+        <CardHeader className="px-4 py-3 border-b">
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-lg">{tripTitle}</CardTitle>
+              <CardDescription>6 participants</CardDescription>
+            </div>
+            <ToggleGroup type="single" value={activeView} onValueChange={(value) => value && setActiveView(value)}>
+              <ToggleGroupItem value="chat" aria-label="Chat view">
+                <MessageSquare className="h-5 w-5" />
+                <span className="sr-only md:not-sr-only md:ml-2">Chat</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="expenses" aria-label="Expenses view">
+                <DollarSign className="h-5 w-5" />
+                <span className="sr-only md:not-sr-only md:ml-2">Expenses</span>
+              </ToggleGroupItem>
+              <ToggleGroupItem value="balances" aria-label="Balances view">
+                <Wallet className="h-5 w-5" />
+                <span className="sr-only md:not-sr-only md:ml-2">Balances</span>
+              </ToggleGroupItem>
+            </ToggleGroup>
             
-            <CardContent className="p-0 overflow-hidden">
+            {activeView === "expenses" && (
+              <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+                <DialogTrigger asChild>
+                  <Button size="sm" variant="outline">
+                    <Plus className="h-4 w-4 mr-1" /> Add Expense
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Expense</DialogTitle>
+                    <DialogDescription>Enter the expense details to split with the group.</DialogDescription>
+                  </DialogHeader>
+                  
+                  <Form {...expenseForm}>
+                    <form onSubmit={expenseForm.handleSubmit(handleAddExpense)} className="space-y-4">
+                      <FormField
+                        control={expenseForm.control}
+                        name="title"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Expense Title</FormLabel>
+                            <FormControl>
+                              <Input placeholder="Dinner at Beach Restaurant" {...field} />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <FormField
+                        control={expenseForm.control}
+                        name="amount"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel>Amount ($)</FormLabel>
+                            <FormControl>
+                              <Input 
+                                type="number" 
+                                min="0" 
+                                step="0.01" 
+                                placeholder="0.00" 
+                                onChange={e => field.onChange(parseFloat(e.target.value))}
+                                value={field.value}
+                              />
+                            </FormControl>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                      
+                      <div className="space-y-2">
+                        <FormLabel>Split Between</FormLabel>
+                        <div className="grid grid-cols-2 gap-2">
+                          {members.map((member) => (
+                            <div key={member.id} className="flex items-center space-x-2">
+                              <input
+                                type="checkbox"
+                                id={`member-${member.id}`}
+                                className="form-checkbox h-4 w-4"
+                                defaultChecked={member.id === currentUser.id}
+                                onChange={(e) => {
+                                  const currentValues = expenseForm.getValues("splitBetween");
+                                  if (e.target.checked) {
+                                    if (!currentValues.includes(member.id)) {
+                                      expenseForm.setValue("splitBetween", [...currentValues, member.id]);
+                                    }
+                                  } else {
+                                    expenseForm.setValue(
+                                      "splitBetween",
+                                      currentValues.filter((id) => id !== member.id)
+                                    );
+                                  }
+                                }}
+                              />
+                              <label htmlFor={`member-${member.id}`} className="text-sm">
+                                {member.name}
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      
+                      <DialogFooter>
+                        <Button type="submit">Add Expense</Button>
+                      </DialogFooter>
+                    </form>
+                  </Form>
+                </DialogContent>
+              </Dialog>
+            )}
+          </div>
+        </CardHeader>
+        
+        <CardContent className="p-0 overflow-hidden">
+          {/* Chat View */}
+          {activeView === "chat" && (
+            <>
               {/* Messages */}
               <div className="flex flex-col h-[calc(100vh-16rem)] p-4 overflow-y-auto">
                 {messages.map((message) => (
@@ -253,210 +360,104 @@ export default function CommunityChatPage() {
                   </div>
                 ))}
               </div>
-            </CardContent>
-            
-            {/* Message Input */}
-            <CardFooter className="p-4 border-t">
-              <div className="flex w-full items-center space-x-2">
-                <Input
-                  value={newMessage}
-                  onChange={(e) => setNewMessage(e.target.value)}
-                  placeholder="Type a message..."
-                  className="flex-1"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
-                      e.preventDefault();
-                      sendMessage();
-                    }
-                  }}
-                />
-                <Button size="icon" onClick={sendMessage} type="submit">
-                  <Send className="h-4 w-4" />
-                </Button>
+              
+              {/* Message Input */}
+              <div className="p-4 border-t">
+                <div className="flex w-full items-center space-x-2">
+                  <Input
+                    value={newMessage}
+                    onChange={(e) => setNewMessage(e.target.value)}
+                    placeholder="Type a message..."
+                    className="flex-1"
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" && !e.shiftKey) {
+                        e.preventDefault();
+                        sendMessage();
+                      }
+                    }}
+                  />
+                  <Button size="icon" onClick={sendMessage} type="submit">
+                    <Send className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
-            </CardFooter>
-          </Card>
-        </div>
-
-        {/* Expense Tracker */}
-        <div>
-          <Card className="h-[calc(100vh-12rem)]">
-            <CardHeader className="px-4 py-3 border-b">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-lg">Expenses</CardTitle>
-                <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
-                  <DialogTrigger asChild>
-                    <Button size="sm" variant="outline">
-                      <Plus className="h-4 w-4 mr-1" /> Add Expense
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Add New Expense</DialogTitle>
-                      <DialogDescription>Enter the expense details to split with the group.</DialogDescription>
-                    </DialogHeader>
-                    
-                    <Form {...expenseForm}>
-                      <form onSubmit={expenseForm.handleSubmit(handleAddExpense)} className="space-y-4">
-                        <FormField
-                          control={expenseForm.control}
-                          name="title"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Expense Title</FormLabel>
-                              <FormControl>
-                                <Input placeholder="Dinner at Beach Restaurant" {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <FormField
-                          control={expenseForm.control}
-                          name="amount"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>Amount ($)</FormLabel>
-                              <FormControl>
-                                <Input 
-                                  type="number" 
-                                  min="0" 
-                                  step="0.01" 
-                                  placeholder="0.00" 
-                                  onChange={e => field.onChange(parseFloat(e.target.value))}
-                                  value={field.value}
-                                />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        
-                        <div className="space-y-2">
-                          <FormLabel>Split Between</FormLabel>
-                          <div className="grid grid-cols-2 gap-2">
-                            {members.map((member) => (
-                              <div key={member.id} className="flex items-center space-x-2">
-                                <input
-                                  type="checkbox"
-                                  id={`member-${member.id}`}
-                                  className="form-checkbox h-4 w-4"
-                                  defaultChecked={member.id === currentUser.id}
-                                  onChange={(e) => {
-                                    const currentValues = expenseForm.getValues("splitBetween");
-                                    if (e.target.checked) {
-                                      if (!currentValues.includes(member.id)) {
-                                        expenseForm.setValue("splitBetween", [...currentValues, member.id]);
-                                      }
-                                    } else {
-                                      expenseForm.setValue(
-                                        "splitBetween",
-                                        currentValues.filter((id) => id !== member.id)
-                                      );
-                                    }
-                                  }}
-                                />
-                                <label htmlFor={`member-${member.id}`} className="text-sm">
-                                  {member.name}
-                                </label>
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                        
-                        <DialogFooter>
-                          <Button type="submit">Add Expense</Button>
-                        </DialogFooter>
-                      </form>
-                    </Form>
-                  </DialogContent>
-                </Dialog>
-              </div>
-            </CardHeader>
-            
-            <CardContent className="p-0">
-              <Tabs defaultValue="expenses">
-                <TabsList className="grid grid-cols-2 w-full">
-                  <TabsTrigger value="expenses">Expenses</TabsTrigger>
-                  <TabsTrigger value="balances">Balances</TabsTrigger>
-                </TabsList>
-                
-                <TabsContent value="expenses" className="p-0">
-                  <div className="px-4 py-2 space-y-4 overflow-y-auto max-h-[calc(100vh-20rem)]">
-                    {expenses.map((expense) => (
-                      <div key={expense.id} className="flex justify-between items-center py-2 border-b">
-                        <div className="flex items-center">
-                          <Avatar className="h-8 w-8 mr-2">
-                            <AvatarImage src={expense.paidBy.avatar} alt={expense.paidBy.name} />
-                            <AvatarFallback>{getInitials(expense.paidBy.name)}</AvatarFallback>
-                          </Avatar>
-                          <div>
-                            <div className="font-medium">{expense.title}</div>
-                            <div className="text-xs text-muted-foreground">
-                              Paid by {expense.paidBy.name} • {format(expense.date, "MMM d")}
-                            </div>
-                          </div>
-                        </div>
-                        <div className="font-semibold">
-                          ${expense.amount.toFixed(2)}
-                          <div className="text-xs text-muted-foreground text-right">
-                            ${(expense.amount / expense.splitBetween.length).toFixed(2)} per person
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-                
-                <TabsContent value="balances" className="p-0">
-                  <div className="px-4 py-2 space-y-4 overflow-y-auto max-h-[calc(100vh-20rem)]">
-                    {balances.map((balance) => (
-                      <div key={balance.userId} className="flex justify-between items-center py-2 border-b">
-                        <div className="flex items-center">
-                          <Avatar className="h-8 w-8 mr-2">
-                            <AvatarImage src={balance.avatar} alt={balance.name} />
-                            <AvatarFallback>{getInitials(balance.name)}</AvatarFallback>
-                          </Avatar>
-                          <div className="font-medium">{balance.name}</div>
-                        </div>
-                        <div 
-                          className={`font-semibold ${
-                            balance.amount > 0 
-                              ? "text-green-600" 
-                              : balance.amount < 0 
-                                ? "text-red-600" 
-                                : ""
-                          }`}
-                        >
-                          {balance.amount > 0 ? "+" : ""}{balance.amount.toFixed(2)}
-                        </div>
-                      </div>
-                    ))}
-                    
-                    <div className="mt-4 bg-muted p-3 rounded-lg">
-                      <div className="text-sm font-medium mb-1">Summary</div>
-                      <div className="text-xs text-muted-foreground mb-2">
-                        Positive values mean you're owed money, negative values mean you owe money.
-                      </div>
-                      <div className="flex justify-between">
-                        <span>Your total balance:</span>
-                        <span className={`font-semibold ${
-                          balances.find(b => b.userId === currentUser.id)?.amount! > 0 
-                            ? "text-green-600" 
-                            : "text-red-600"
-                        }`}>
-                          ${balances.find(b => b.userId === currentUser.id)?.amount.toFixed(2)}
-                        </span>
+            </>
+          )}
+          
+          {/* Expenses View */}
+          {activeView === "expenses" && (
+            <div className="px-4 py-2 space-y-4 overflow-y-auto max-h-[calc(100vh-16rem)]">
+              {expenses.map((expense) => (
+                <div key={expense.id} className="flex justify-between items-center py-2 border-b">
+                  <div className="flex items-center">
+                    <Avatar className="h-8 w-8 mr-2">
+                      <AvatarImage src={expense.paidBy.avatar} alt={expense.paidBy.name} />
+                      <AvatarFallback>{getInitials(expense.paidBy.name)}</AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium">{expense.title}</div>
+                      <div className="text-xs text-muted-foreground">
+                        Paid by {expense.paidBy.name} • {format(expense.date, "MMM d")}
                       </div>
                     </div>
                   </div>
-                </TabsContent>
-              </Tabs>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
+                  <div className="font-semibold">
+                    ${expense.amount.toFixed(2)}
+                    <div className="text-xs text-muted-foreground text-right">
+                      ${(expense.amount / expense.splitBetween.length).toFixed(2)} per person
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+          
+          {/* Balances View */}
+          {activeView === "balances" && (
+            <div className="px-4 py-2 space-y-4 overflow-y-auto max-h-[calc(100vh-16rem)]">
+              {balances.map((balance) => (
+                <div key={balance.userId} className="flex justify-between items-center py-2 border-b">
+                  <div className="flex items-center">
+                    <Avatar className="h-8 w-8 mr-2">
+                      <AvatarImage src={balance.avatar} alt={balance.name} />
+                      <AvatarFallback>{getInitials(balance.name)}</AvatarFallback>
+                    </Avatar>
+                    <div className="font-medium">{balance.name}</div>
+                  </div>
+                  <div 
+                    className={`font-semibold ${
+                      balance.amount > 0 
+                        ? "text-green-600" 
+                        : balance.amount < 0 
+                          ? "text-red-600" 
+                          : ""
+                    }`}
+                  >
+                    {balance.amount > 0 ? "+" : ""}${Math.abs(balance.amount).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+              
+              <div className="mt-4 bg-muted p-3 rounded-lg">
+                <div className="text-sm font-medium mb-1">Summary</div>
+                <div className="text-xs text-muted-foreground mb-2">
+                  Positive values mean you're owed money, negative values mean you owe money.
+                </div>
+                <div className="flex justify-between">
+                  <span>Your total balance:</span>
+                  <span className={`font-semibold ${
+                    balances.find(b => b.userId === currentUser.id)?.amount! > 0 
+                      ? "text-green-600" 
+                      : "text-red-600"
+                  }`}>
+                    ${balances.find(b => b.userId === currentUser.id)?.amount.toFixed(2)}
+                  </span>
+                </div>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }
