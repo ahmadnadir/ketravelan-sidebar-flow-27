@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Send, User, Plus, DollarSign, MessageSquare, Wallet } from "lucide-react";
 import { format } from "date-fns";
@@ -8,6 +7,7 @@ import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
+import { useIsMobile } from "@/hooks/use-mobile";
 import {
   Dialog,
   DialogContent,
@@ -17,6 +17,15 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  SheetClose,
+} from "@/components/ui/sheet";
 import {
   Form,
   FormControl,
@@ -153,6 +162,7 @@ export default function CommunityChatPage() {
   const [newMessage, setNewMessage] = useState("");
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [activeView, setActiveView] = useState("chat"); // "chat", "expenses", or "balances"
+  const isMobile = useIsMobile();
 
   const expenseForm = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
@@ -202,16 +212,99 @@ export default function CommunityChatPage() {
     { id: "user-current", name: "You", avatar: "https://i.pravatar.cc/150?u=current" }
   ];
 
+  // Component for expense form that can be used in both dialog and sheet
+  const ExpenseForm = ({ onSubmit, onOpenChange }) => (
+    <Form {...expenseForm}>
+      <form onSubmit={expenseForm.handleSubmit(onSubmit)} className="space-y-4">
+        <FormField
+          control={expenseForm.control}
+          name="title"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Expense Title</FormLabel>
+              <FormControl>
+                <Input placeholder="Dinner at Beach Restaurant" {...field} />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <FormField
+          control={expenseForm.control}
+          name="amount"
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>Amount ($)</FormLabel>
+              <FormControl>
+                <Input 
+                  type="number" 
+                  min="0" 
+                  step="0.01" 
+                  placeholder="0.00" 
+                  onChange={e => field.onChange(parseFloat(e.target.value))}
+                  value={field.value}
+                />
+              </FormControl>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+        
+        <div className="space-y-2">
+          <FormLabel>Split Between</FormLabel>
+          <div className="grid grid-cols-2 gap-2">
+            {members.map((member) => (
+              <div key={member.id} className="flex items-center space-x-2">
+                <input
+                  type="checkbox"
+                  id={`member-${member.id}`}
+                  className="form-checkbox h-4 w-4"
+                  defaultChecked={member.id === currentUser.id}
+                  onChange={(e) => {
+                    const currentValues = expenseForm.getValues("splitBetween");
+                    if (e.target.checked) {
+                      if (!currentValues.includes(member.id)) {
+                        expenseForm.setValue("splitBetween", [...currentValues, member.id]);
+                      }
+                    } else {
+                      expenseForm.setValue(
+                        "splitBetween",
+                        currentValues.filter((id) => id !== member.id)
+                      );
+                    }
+                  }}
+                />
+                <label htmlFor={`member-${member.id}`} className="text-sm">
+                  {member.name}
+                </label>
+              </div>
+            ))}
+          </div>
+        </div>
+        
+        <div className="flex justify-end">
+          <Button type="submit">Add Expense</Button>
+        </div>
+      </form>
+    </Form>
+  );
+
   return (
-    <div className="container mx-auto">
+    <div className="container mx-auto px-0 sm:px-4">
       <Card className="h-[calc(100vh-8rem)]">
-        <CardHeader className="px-4 py-3 border-b">
-          <div className="flex items-center justify-between">
+        <CardHeader className="px-2 sm:px-4 py-3 border-b">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
             <div>
               <CardTitle className="text-lg">{tripTitle}</CardTitle>
               <CardDescription>6 participants</CardDescription>
             </div>
-            <ToggleGroup type="single" value={activeView} onValueChange={(value) => value && setActiveView(value)}>
+            <ToggleGroup 
+              type="single" 
+              value={activeView} 
+              onValueChange={(value) => value && setActiveView(value)}
+              className="self-center sm:self-auto"
+            >
               <ToggleGroupItem value="chat" aria-label="Chat view">
                 <MessageSquare className="h-5 w-5" />
                 <span className="sr-only md:not-sr-only md:ml-2">Chat</span>
@@ -227,94 +320,45 @@ export default function CommunityChatPage() {
             </ToggleGroup>
             
             {activeView === "expenses" && (
-              <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
-                <DialogTrigger asChild>
-                  <Button size="sm" variant="outline">
-                    <Plus className="h-4 w-4 mr-1" /> Add Expense
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New Expense</DialogTitle>
-                    <DialogDescription>Enter the expense details to split with the group.</DialogDescription>
-                  </DialogHeader>
-                  
-                  <Form {...expenseForm}>
-                    <form onSubmit={expenseForm.handleSubmit(handleAddExpense)} className="space-y-4">
-                      <FormField
-                        control={expenseForm.control}
-                        name="title"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Expense Title</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Dinner at Beach Restaurant" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
+              isMobile ? (
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <Button size="sm" variant="outline" className="w-full sm:w-auto mt-2 sm:mt-0">
+                      <Plus className="h-4 w-4 mr-1" /> Add Expense
+                    </Button>
+                  </SheetTrigger>
+                  <SheetContent side="bottom" className="h-[85vh] rounded-t-xl">
+                    <SheetHeader>
+                      <SheetTitle>Add New Expense</SheetTitle>
+                      <SheetDescription>Enter the expense details to split with the group.</SheetDescription>
+                    </SheetHeader>
+                    <div className="mt-4">
+                      <ExpenseForm 
+                        onSubmit={(data) => {
+                          handleAddExpense(data);
+                          document.querySelector('[data-radix-collection-item]')?.click();
+                        }} 
+                        onOpenChange={() => {}}
                       />
-                      
-                      <FormField
-                        control={expenseForm.control}
-                        name="amount"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Amount ($)</FormLabel>
-                            <FormControl>
-                              <Input 
-                                type="number" 
-                                min="0" 
-                                step="0.01" 
-                                placeholder="0.00" 
-                                onChange={e => field.onChange(parseFloat(e.target.value))}
-                                value={field.value}
-                              />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                      
-                      <div className="space-y-2">
-                        <FormLabel>Split Between</FormLabel>
-                        <div className="grid grid-cols-2 gap-2">
-                          {members.map((member) => (
-                            <div key={member.id} className="flex items-center space-x-2">
-                              <input
-                                type="checkbox"
-                                id={`member-${member.id}`}
-                                className="form-checkbox h-4 w-4"
-                                defaultChecked={member.id === currentUser.id}
-                                onChange={(e) => {
-                                  const currentValues = expenseForm.getValues("splitBetween");
-                                  if (e.target.checked) {
-                                    if (!currentValues.includes(member.id)) {
-                                      expenseForm.setValue("splitBetween", [...currentValues, member.id]);
-                                    }
-                                  } else {
-                                    expenseForm.setValue(
-                                      "splitBetween",
-                                      currentValues.filter((id) => id !== member.id)
-                                    );
-                                  }
-                                }}
-                              />
-                              <label htmlFor={`member-${member.id}`} className="text-sm">
-                                {member.name}
-                              </label>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                      
-                      <DialogFooter>
-                        <Button type="submit">Add Expense</Button>
-                      </DialogFooter>
-                    </form>
-                  </Form>
-                </DialogContent>
-              </Dialog>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              ) : (
+                <Dialog open={isExpenseDialogOpen} onOpenChange={setIsExpenseDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm" variant="outline">
+                      <Plus className="h-4 w-4 mr-1" /> Add Expense
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add New Expense</DialogTitle>
+                      <DialogDescription>Enter the expense details to split with the group.</DialogDescription>
+                    </DialogHeader>
+                    <ExpenseForm onSubmit={handleAddExpense} onOpenChange={setIsExpenseDialogOpen} />
+                  </DialogContent>
+                </Dialog>
+              )
             )}
           </div>
         </CardHeader>
@@ -324,7 +368,7 @@ export default function CommunityChatPage() {
           {activeView === "chat" && (
             <>
               {/* Messages */}
-              <div className="flex flex-col h-[calc(100vh-16rem)] p-4 overflow-y-auto">
+              <div className="flex flex-col h-[calc(100vh-16rem)] p-2 sm:p-4 overflow-y-auto">
                 {messages.map((message) => (
                   <div
                     key={message.id}
@@ -339,7 +383,7 @@ export default function CommunityChatPage() {
                       </Avatar>
                     )}
                     <div 
-                      className={`max-w-[70%] rounded-lg px-4 py-2 ${
+                      className={`max-w-[85%] sm:max-w-[70%] rounded-lg px-3 sm:px-4 py-2 ${
                         message.isCurrentUser 
                           ? "bg-primary text-primary-foreground" 
                           : "bg-muted"
@@ -348,7 +392,7 @@ export default function CommunityChatPage() {
                       {!message.isCurrentUser && (
                         <div className="font-medium text-xs mb-1">{message.sender.name}</div>
                       )}
-                      <p>{message.content}</p>
+                      <p className="text-sm sm:text-base">{message.content}</p>
                       <div 
                         className={`text-xs mt-1 ${
                           message.isCurrentUser ? "text-primary-foreground/70" : "text-muted-foreground"
@@ -362,7 +406,7 @@ export default function CommunityChatPage() {
               </div>
               
               {/* Message Input */}
-              <div className="p-4 border-t">
+              <div className="p-2 sm:p-4 border-t">
                 <div className="flex w-full items-center space-x-2">
                   <Input
                     value={newMessage}
@@ -376,7 +420,7 @@ export default function CommunityChatPage() {
                       }
                     }}
                   />
-                  <Button size="icon" onClick={sendMessage} type="submit">
+                  <Button size={isMobile ? "sm" : "icon"} onClick={sendMessage} type="submit">
                     <Send className="h-4 w-4" />
                   </Button>
                 </div>
@@ -386,7 +430,7 @@ export default function CommunityChatPage() {
           
           {/* Expenses View */}
           {activeView === "expenses" && (
-            <div className="px-4 py-2 space-y-4 overflow-y-auto max-h-[calc(100vh-16rem)]">
+            <div className="px-2 sm:px-4 py-2 space-y-4 overflow-y-auto max-h-[calc(100vh-16rem)]">
               {expenses.map((expense) => (
                 <div key={expense.id} className="flex justify-between items-center py-2 border-b">
                   <div className="flex items-center">
@@ -395,13 +439,13 @@ export default function CommunityChatPage() {
                       <AvatarFallback>{getInitials(expense.paidBy.name)}</AvatarFallback>
                     </Avatar>
                     <div>
-                      <div className="font-medium">{expense.title}</div>
+                      <div className="font-medium text-sm sm:text-base">{expense.title}</div>
                       <div className="text-xs text-muted-foreground">
                         Paid by {expense.paidBy.name} • {format(expense.date, "MMM d")}
                       </div>
                     </div>
                   </div>
-                  <div className="font-semibold">
+                  <div className="font-semibold text-sm sm:text-base">
                     ${expense.amount.toFixed(2)}
                     <div className="text-xs text-muted-foreground text-right">
                       ${(expense.amount / expense.splitBetween.length).toFixed(2)} per person
@@ -414,7 +458,7 @@ export default function CommunityChatPage() {
           
           {/* Balances View */}
           {activeView === "balances" && (
-            <div className="px-4 py-2 space-y-4 overflow-y-auto max-h-[calc(100vh-16rem)]">
+            <div className="px-2 sm:px-4 py-2 space-y-4 overflow-y-auto max-h-[calc(100vh-16rem)]">
               {balances.map((balance) => (
                 <div key={balance.userId} className="flex justify-between items-center py-2 border-b">
                   <div className="flex items-center">
@@ -422,10 +466,10 @@ export default function CommunityChatPage() {
                       <AvatarImage src={balance.avatar} alt={balance.name} />
                       <AvatarFallback>{getInitials(balance.name)}</AvatarFallback>
                     </Avatar>
-                    <div className="font-medium">{balance.name}</div>
+                    <div className="font-medium text-sm sm:text-base">{balance.name}</div>
                   </div>
                   <div 
-                    className={`font-semibold ${
+                    className={`font-semibold text-sm sm:text-base ${
                       balance.amount > 0 
                         ? "text-green-600" 
                         : balance.amount < 0 
