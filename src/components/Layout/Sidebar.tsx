@@ -17,7 +17,8 @@ import {
   User, 
   PlusCircle,
   Map,
-  LayoutDashboard
+  LayoutDashboard,
+  X
 } from "lucide-react";
 
 type MenuItem = {
@@ -105,10 +106,26 @@ export function Sidebar() {
         )}
       >
         {/* Logo / Header */}
-        <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border">
-          {!isCollapsed && (
-            <span className="text-xl font-bold text-primary">Ketravelan</span>
+        <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border relative">
+          {/* Close button for mobile */}
+          {isMobileOpen && (
+            <button 
+              onClick={() => setIsMobileOpen(false)}
+              className="absolute right-2 top-2 p-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent"
+              aria-label="Close sidebar"
+            >
+              <X size={20} />
+            </button>
           )}
+          
+          {/* Logo */}
+          <div className="flex-1 flex justify-center lg:justify-start">
+            {!isCollapsed && (
+              <span className="text-xl font-bold text-primary">Ketravelan</span>
+            )}
+          </div>
+          
+          {/* Collapse button (desktop only) */}
           <button 
             onClick={() => setIsCollapsed(!isCollapsed)}
             className="p-2 rounded-md hover:bg-sidebar-accent lg:block hidden"
