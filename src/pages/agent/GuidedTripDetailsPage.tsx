@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Calendar, MapPin, Users, Clock, DollarSign, Clipboard, File } from "lucide-react";
 
@@ -32,6 +31,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion";
+import { DynamicPaymentCalculator } from "@/components/DynamicPaymentCalculator";
+import { type DynamicPayment } from "@/utils/paymentUtils";
 
 // Demo data for the trip
 const tripData = {
@@ -139,7 +140,12 @@ const tripData = {
 
 export default function GuidedTripDetailsPage() {
   const [selectedBookingDate, setSelectedBookingDate] = useState<number | null>(null);
+  const [currentPaymentSchedule, setCurrentPaymentSchedule] = useState<DynamicPayment | null>(null);
   
+  const handlePaymentScheduleChange = (schedule: DynamicPayment) => {
+    setCurrentPaymentSchedule(schedule);
+  };
+
   return (
     <div className="container mx-auto p-4 max-w-6xl">
       <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
@@ -165,6 +171,7 @@ export default function GuidedTripDetailsPage() {
           <TabsTrigger value="details">Trip Details</TabsTrigger>
           <TabsTrigger value="itinerary">Itinerary</TabsTrigger>
           <TabsTrigger value="payment">Payment Plan</TabsTrigger>
+          <TabsTrigger value="dynamic-payment">Dynamic Payment</TabsTrigger>
           <TabsTrigger value="dates">Available Dates</TabsTrigger>
         </TabsList>
         
@@ -455,6 +462,19 @@ export default function GuidedTripDetailsPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+        
+        <TabsContent value="dynamic-payment">
+          <DynamicPaymentCalculator
+            totalAmount={tripData.basePrice}
+            minimumDeposit={tripData.depositAmount}
+            paymentTermMonths={6}
+            agentInfo={{
+              businessName: tripData.agentInfo.name,
+              contactInfo: "info@balispiritualjourney.com"
+            }}
+            onPaymentScheduleChange={handlePaymentScheduleChange}
+          />
         </TabsContent>
         
         <TabsContent value="dates">
