@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { MapPin, Calendar, Users, DollarSign, Tag, MessageSquare, User, CheckCircle } from "lucide-react";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +13,7 @@ const tripDetails = {
   id: "trip-123",
   title: "Exploring Bali's Hidden Gems",
   location: "Bali, Indonesia",
+  coverImage: "https://images.unsplash.com/photo-1500673922987-e212871fec22?w=800&h=400&fit=crop",
   dateRange: "Jun 15 - Jun 30, 2025",
   creator: {
     id: "user-1",
@@ -62,6 +62,17 @@ export default function CommunityTripDetailsPage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Main Trip Details */}
         <div className="lg:col-span-2 space-y-6">
+          {/* Cover Image */}
+          {tripDetails.coverImage && (
+            <div className="w-full h-64 md:h-80 rounded-lg overflow-hidden">
+              <img
+                src={tripDetails.coverImage}
+                alt={tripDetails.title}
+                className="w-full h-full object-cover"
+              />
+            </div>
+          )}
+
           <div className="flex items-center justify-between">
             <h1 className="text-3xl font-bold">{tripDetails.title}</h1>
             <div className="flex gap-2">

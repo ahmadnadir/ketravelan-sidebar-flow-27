@@ -19,6 +19,7 @@ import { TagInput } from "@/components/TagInput";
 import { BasicTripInfoSection } from "./BasicTripInfoSection";
 import { DateRangeSection } from "./DateRangeSection";
 import { GroupSizeBudgetSection } from "./GroupSizeBudgetSection";
+import { CoverImageUpload } from "./CoverImageUpload";
 import { communityTripFormSchema, CommunityTripFormValues } from "@/types/communityTrip";
 
 export function CommunityTripForm() {
@@ -29,6 +30,7 @@ export function CommunityTripForm() {
     defaultValues: {
       title: "",
       location: "",
+      coverImage: "",
       groupSize: 4,
       budget: 1000,
       description: "",
@@ -67,6 +69,7 @@ export function CommunityTripForm() {
         <form onSubmit={form.handleSubmit(onSubmit)}>
           <CardContent className="space-y-6">
             <BasicTripInfoSection control={form.control} />
+            <CoverImageUpload control={form.control} />
             <DateRangeSection control={form.control} />
             <GroupSizeBudgetSection control={form.control} />
             <TagInput control={form.control} name="tags" />

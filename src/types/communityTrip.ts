@@ -8,6 +8,7 @@ export const communityTripFormSchema = z.object({
   location: z.string().min(3, {
     message: "Location is required.",
   }),
+  coverImage: z.string().optional(),
   dateRange: z.object({
     from: z.date(),
     to: z.date(),
