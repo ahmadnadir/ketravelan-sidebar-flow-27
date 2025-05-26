@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { format } from "date-fns";
-import { CalendarIcon, MapPin, Users, DollarSign, Tag } from "lucide-react";
+import { CalendarIcon, MapPin, Users, DollarSign } from "lucide-react";
 import { DateRange } from "react-day-picker";
 
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,8 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
+import { ItineraryBuilder } from "@/components/ItineraryBuilder";
+import { TagInput } from "@/components/TagInput";
 
 const formSchema = z.object({
   title: z.string().min(5, {
@@ -62,8 +64,15 @@ const formSchema = z.object({
   description: z.string().min(20, {
     message: "Description must be at least 20 characters.",
   }),
-  tags: z.string().refine(val => val.trim().length > 0, {
+  tags: z.array(z.string()).min(1, {
     message: "Add at least one tag.",
+  }),
+  itinerary: z.array(z.object({
+    day: z.number(),
+    title: z.string().min(1, "Activity title is required"),
+    description: z.string().min(1, "Activity description is required"),
+  })).min(1, {
+    message: "Add at least one day to your itinerary.",
   }),
 });
 
@@ -80,7 +89,14 @@ export default function CreateCommunityTripPage() {
       groupSize: 4,
       budget: 1000,
       description: "",
-      tags: "",
+      tags: [],
+      itinerary: [
+        {
+          day: 1,
+          title: "",
+          description: "",
+        }
+      ],
     },
   });
   
@@ -269,29 +285,10 @@ export default function CreateCommunityTripPage() {
               />
               
               {/* Tags */}
-              <FormField
-                control={form.control}
-                name="tags"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Tags</FormLabel>
-                    <FormControl>
-                      <div className="relative">
-                        <Tag className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input 
-                          className="pl-8" 
-                          placeholder="adventure,beach,hiking,cultural (comma separated)" 
-                          {...field} 
-                        />
-                      </div>
-                    </FormControl>
-                    <FormDescription>
-                      Add tags to help others find your trip
-                    </FormDescription>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+              <TagInput control={form.control} name="tags" />
+              
+              {/* Itinerary Builder */}
+              <ItineraryBuilder control={form.control} name="itinerary" />
             </CardContent>
             
             <CardFooter className="flex justify-between">
