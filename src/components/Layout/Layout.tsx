@@ -14,9 +14,13 @@ export function Layout() {
         "flex-1 min-w-0 transition-all duration-300",
         isMobile 
           ? "p-4 pt-16 w-full" 
-          : "lg:ml-64 p-4 lg:p-8 w-full",
+          : "p-4 lg:p-8 w-full",
         "overflow-x-hidden"
-      )}>
+      )}
+      style={{
+        marginLeft: isMobile ? '0' : 'var(--sidebar-width, 256px)'
+      }}
+      >
         <div className="w-full max-w-full">
           <Outlet />
         </div>

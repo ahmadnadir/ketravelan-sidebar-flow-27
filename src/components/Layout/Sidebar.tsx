@@ -20,6 +20,7 @@ import {
   LayoutDashboard,
   X
 } from "lucide-react";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 type MenuItem = {
   title: string;
@@ -54,6 +55,7 @@ const menuItems: MenuItem[] = [
 export function Sidebar() {
   const location = useLocation();
   const { userRole } = useAuth();
+  const isMobile = useIsMobile();
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   
@@ -61,6 +63,13 @@ export function Sidebar() {
   useEffect(() => {
     setIsMobileOpen(false);
   }, [location]);
+
+  // Reset collapsed state on mobile
+  useEffect(() => {
+    if (isMobile) {
+      setIsCollapsed(false);
+    }
+  }, [isMobile]);
 
   // Toggle role for demonstration purposes
   const { setUserRole } = useAuth();
@@ -101,7 +110,10 @@ export function Sidebar() {
         className={cn(
           "h-full fixed left-0 top-0 z-40 flex flex-col transition-all duration-300 ease-in-out",
           "bg-sidebar border-r border-sidebar-border shadow-sm",
-          isCollapsed ? "w-[70px]" : "w-64",
+          // Desktop behavior
+          !isMobile && (isCollapsed ? "w-[70px]" : "w-64"),
+          // Mobile behavior
+          isMobile && "w-64",
           isMobileOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
         )}
       >
@@ -111,7 +123,7 @@ export function Sidebar() {
           {isMobileOpen && (
             <button 
               onClick={() => setIsMobileOpen(false)}
-              className="absolute right-2 top-2 p-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent"
+              className="absolute right-2 top-2 p-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent lg:hidden"
               aria-label="Close sidebar"
             >
               <X size={20} />
@@ -120,24 +132,29 @@ export function Sidebar() {
           
           {/* Logo */}
           <div className="flex-1 flex justify-center lg:justify-start">
-            {!isCollapsed && (
+            {(!isCollapsed || isMobile) && (
               <span className="text-xl font-bold text-primary">Ketravelan</span>
+            )}
+            {isCollapsed && !isMobile && (
+              <span className="text-xl font-bold text-primary">K</span>
             )}
           </div>
           
           {/* Collapse button (desktop only) */}
-          <button 
-            onClick={() => setIsCollapsed(!isCollapsed)}
-            className="p-2 rounded-md hover:bg-sidebar-accent lg:block hidden"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              {isCollapsed ? (
-                <path d="M12 5l7 7-7 7M5 5l7 7-7 7" />
-              ) : (
-                <path d="M19 12H5M12 5l-7 7 7 7" />
-              )}
-            </svg>
-          </button>
+          {!isMobile && (
+            <button 
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="p-2 rounded-md hover:bg-sidebar-accent"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                {isCollapsed ? (
+                  <path d="M12 5l7 7-7 7M5 5l7 7-7 7" />
+                ) : (
+                  <path d="M19 12H5M12 5l-7 7 7 7" />
+                )}
+              </svg>
+            </button>
+          )}
         </div>
         
         {/* Navigation */}
@@ -152,11 +169,12 @@ export function Sidebar() {
                   location.pathname === item.path
                     ? "bg-sidebar-accent text-primary font-medium"
                     : "text-sidebar-foreground hover:bg-sidebar-accent/50",
-                  isCollapsed ? "justify-center" : "justify-start"
+                  (isCollapsed && !isMobile) ? "justify-center" : "justify-start"
                 )}
+                title={isCollapsed && !isMobile ? item.title : undefined}
               >
                 <span className="flex-shrink-0">{item.icon}</span>
-                {!isCollapsed && <span className="ml-3">{item.title}</span>}
+                {(!isCollapsed || isMobile) && <span className="ml-3">{item.title}</span>}
               </Link>
             ))}
           </nav>
@@ -170,7 +188,7 @@ export function Sidebar() {
             className="w-full justify-center"
             size="sm"
           >
-            {isCollapsed ? (
+            {(isCollapsed && !isMobile) ? (
               <Users size={20} />
             ) : (
               <>
