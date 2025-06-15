@@ -8,16 +8,16 @@ export function Layout() {
   const isMobile = useIsMobile();
   
   return (
-    <div className="min-h-screen flex w-full">
+    <div className="min-h-screen flex w-full overflow-hidden">
       <Sidebar />
       <main className={cn(
-        "flex-1 w-full min-w-0 transition-all duration-300",
+        "flex-1 min-w-0 transition-all duration-300",
         isMobile 
-          ? "p-4 pt-16" 
-          : "lg:ml-64 p-4 lg:p-8",
-        "overflow-x-auto"
+          ? "p-4 pt-16 w-full" 
+          : "lg:ml-64 p-4 lg:p-8 w-full",
+        "overflow-x-hidden"
       )}>
-        <div className="max-w-full">
+        <div className="w-full max-w-full">
           <Outlet />
         </div>
       </main>
