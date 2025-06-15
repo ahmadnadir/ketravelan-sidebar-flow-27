@@ -57,17 +57,17 @@ export function CommunityTripForm() {
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>New Community Trip</CardTitle>
-        <CardDescription>
+    <Card className="w-full">
+      <CardHeader className="px-4 sm:px-6">
+        <CardTitle className="text-xl sm:text-2xl">New Community Trip</CardTitle>
+        <CardDescription className="text-sm sm:text-base">
           Plan a trip and find travel companions to share the experience.
         </CardDescription>
       </CardHeader>
       
       <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)}>
-          <CardContent className="space-y-6">
+        <form onSubmit={form.handleSubmit(onSubmit)} className="w-full">
+          <CardContent className="space-y-6 px-4 sm:px-6">
             <BasicTripInfoSection control={form.control} />
             <CoverImageUpload control={form.control} />
             <DateRangeSection control={form.control} />
@@ -76,15 +76,18 @@ export function CommunityTripForm() {
             <ItineraryBuilder control={form.control} name="itinerary" />
           </CardContent>
           
-          <CardFooter className="flex justify-between">
+          <CardFooter className="flex flex-col sm:flex-row justify-between gap-4 px-4 sm:px-6">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => navigate(-1)}
+              className="w-full sm:w-auto order-2 sm:order-1"
             >
               Cancel
             </Button>
-            <Button type="submit">Create Trip</Button>
+            <Button type="submit" className="w-full sm:w-auto order-1 sm:order-2">
+              Create Trip
+            </Button>
           </CardFooter>
         </form>
       </Form>

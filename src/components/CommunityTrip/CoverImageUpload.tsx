@@ -43,7 +43,7 @@ export function CoverImageUpload({ control }: CoverImageUploadProps) {
                   <img
                     src={field.value}
                     alt="Trip cover"
-                    className="w-full h-48 object-cover rounded-lg"
+                    className="w-full h-32 sm:h-48 object-cover rounded-lg"
                   />
                   <Button
                     type="button"
@@ -57,15 +57,16 @@ export function CoverImageUpload({ control }: CoverImageUploadProps) {
                 </div>
               ) : (
                 <Card className="border-dashed border-2 border-muted-foreground/25">
-                  <CardContent className="flex flex-col items-center justify-center py-8">
-                    <Image className="h-12 w-12 text-muted-foreground mb-4" />
-                    <p className="text-sm text-muted-foreground mb-4">
+                  <CardContent className="flex flex-col items-center justify-center py-6 sm:py-8">
+                    <Image className="h-8 w-8 sm:h-12 sm:w-12 text-muted-foreground mb-2 sm:mb-4" />
+                    <p className="text-xs sm:text-sm text-muted-foreground mb-2 sm:mb-4 text-center px-4">
                       Choose a cover image for your trip
                     </p>
                     <Button
                       type="button"
                       variant="outline"
                       onClick={() => setShowImageSelector(!showImageSelector)}
+                      className="text-sm"
                     >
                       <Upload className="h-4 w-4 mr-2" />
                       Select Image
@@ -75,13 +76,13 @@ export function CoverImageUpload({ control }: CoverImageUploadProps) {
               )}
               
               {showImageSelector && (
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 sm:gap-4">
                   {placeholderImages.map((imageUrl, index) => (
                     <img
                       key={index}
                       src={imageUrl}
                       alt={`Option ${index + 1}`}
-                      className="w-full h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
+                      className="w-full h-16 sm:h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition-opacity"
                       onClick={() => {
                         field.onChange(imageUrl);
                         setShowImageSelector(false);
