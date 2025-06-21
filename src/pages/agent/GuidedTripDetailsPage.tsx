@@ -39,6 +39,7 @@ const tripData = {
   id: "GT-12345",
   title: "Sacred Temples of Bali Tour",
   location: "Bali, Indonesia",
+  coverImage: "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=1200&h=400&fit=crop",
   description: "Immerse yourself in the spiritual culture of Bali with our guided temple tour. Visit ancient temples, participate in traditional ceremonies, and experience local cuisine while enjoying comfortable accommodations throughout your stay.",
   duration: 7,
   basePrice: 1499,
@@ -148,15 +149,24 @@ export default function GuidedTripDetailsPage() {
 
   return (
     <div className="container mx-auto p-4 max-w-6xl">
-      <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
-        <div>
-          <h1 className="text-3xl font-bold">{tripData.title}</h1>
-          <div className="flex items-center gap-2 mt-2 text-muted-foreground">
-            <MapPin className="h-4 w-4" />
-            <span>{tripData.location}</span>
+      {/* Cover Image Section */}
+      <div className="relative w-full h-48 md:h-64 lg:h-80 rounded-lg overflow-hidden mb-6">
+        <img 
+          src={tripData.coverImage} 
+          alt={tripData.title}
+          className="w-full h-full object-cover"
+        />
+        <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute bottom-4 left-4 right-4 text-white">
+          <h1 className="text-2xl md:text-3xl lg:text-4xl font-bold mb-2">{tripData.title}</h1>
+          <div className="flex items-center gap-2">
+            <MapPin className="h-4 w-4 md:h-5 md:w-5" />
+            <span className="text-sm md:text-base">{tripData.location}</span>
           </div>
         </div>
-        
+      </div>
+
+      <div className="flex flex-col md:flex-row justify-between items-start gap-6 mb-6">
         <div className="flex flex-col sm:flex-row gap-3">
           <Button variant="outline" className="flex gap-2">
             <Clipboard className="h-4 w-4" />
