@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { Send, User, Plus, DollarSign, MessageSquare, Wallet } from "lucide-react";
 import { format } from "date-fns";
@@ -550,7 +549,7 @@ export default function CommunityChatPage() {
               </div>
               
               {/* Message Input */}
-              <div className="p-2 sm:p-4 border-t">
+              <div className="px-2 sm:px-4 py-3 border-t">
                 <div className="flex w-full items-center space-x-2">
                   <Input
                     value={newMessage}
@@ -756,4 +755,3 @@ export default function CommunityChatPage() {
     </div>
   );
 }
-
