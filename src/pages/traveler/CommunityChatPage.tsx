@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Send, User, Plus, DollarSign, MessageSquare, Wallet } from "lucide-react";
+import { Send, User, Plus, DollarSign, MessageSquare, Wallet, CheckCircle2 } from "lucide-react";
 import { format } from "date-fns";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -10,8 +10,16 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { useIsMobile } from "@/hooks/use-mobile";
 import { TipButton } from "@/components/TipButton";
 import { TipDialog } from "@/components/TipDialog";
+import { SettlementDialog } from "@/components/SettlementDialog";
 import { TipMessage } from "@/components/TipMessage";
 import { Tip, generateTipId } from "@/utils/tipUtils";
+import { Settlement, UserBalance } from "@/types/settlement";
+import { 
+  calculateNetBalance, 
+  processSettlement, 
+  formatSettlementAmount,
+  getUserSettlements 
+} from "@/utils/settlementUtils";
 import {
   Dialog,
   DialogContent,
@@ -191,10 +199,55 @@ export default function CommunityChatPage() {
   const [isExpenseDialogOpen, setIsExpenseDialogOpen] = useState(false);
   const [activeView, setActiveView] = useState("chat"); // "chat", "expenses", or "balances"
   const [isTipDialogOpen, setIsTipDialogOpen] = useState(false);
+  const [isSettlementDialogOpen, setIsSettlementDialogOpen] = useState(false);
   const [selectedRecipient, setSelectedRecipient] = useState<{id: string; name: string; avatar: string} | null>(null);
   const [chatMessages, setChatMessages] = useState<(Message | Tip)[]>([...messages, ...initialTips]);
   const [tips, setTips] = useState<Tip[]>(initialTips);
+  const [settlements, setSettlements] = useState<Settlement[]>([]);
   const isMobile = useIsMobile();
+
+  const handleSettlement = async (amount: number, description: string) => {
+    if (!selectedRecipient) return;
+
+    try {
+      const settlement = await processSettlement({
+        fromUserId: currentUser.id,
+        toUserId: selectedRecipient.id,
+        amount,
+        description: description || `Settlement payment to ${selectedRecipient.name}`,
+      });
+
+      setSettlements(prev => [...prev, settlement]);
+
+      toast({
+        title: "Settlement Recorded!",
+        description: `Payment of $${amount.toFixed(2)} to ${selectedRecipient.name} has been recorded.`,
+      });
+
+      setIsSettlementDialogOpen(false);
+      setSelectedRecipient(null);
+    } catch (error) {
+      toast({
+        title: "Settlement Failed",
+        description: "There was an error recording your settlement. Please try again.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // Calculate net balances including settlements
+  const getNetBalances = (): UserBalance[] => {
+    return balances.map(balance => {
+      const userSettlements = getUserSettlements(settlements, balance.userId);
+      const netBalance = calculateNetBalance(balance.amount, settlements, balance.userId);
+      
+      return {
+        ...balance,
+        settlements: userSettlements,
+        netBalance,
+      };
+    });
+  };
 
   const expenseForm = useForm<z.infer<typeof expenseSchema>>({
     resolver: zodResolver(expenseSchema),
@@ -279,11 +332,19 @@ export default function CommunityChatPage() {
       title: "Tip Sent!",
       description: `You sent ${selectedRecipient.name} a $${amount} tip.`,
     });
+    
+    setIsTipDialogOpen(false);
+    setSelectedRecipient(null);
   };
 
   const openTipDialog = (recipient: {id: string; name: string; avatar: string}) => {
     setSelectedRecipient(recipient);
     setIsTipDialogOpen(true);
+  };
+
+  const openSettlementDialog = (recipient: {id: string; name: string; avatar: string}) => {
+    setSelectedRecipient(recipient);
+    setIsSettlementDialogOpen(true);
   };
 
   const getInitials = (name: string) => {
@@ -604,34 +665,87 @@ export default function CommunityChatPage() {
             <div className="px-2 sm:px-4 py-2 overflow-y-auto max-h-[calc(100vh-16rem)]">
               {/* Balances */}
               <div className="space-y-4 mb-6">
-                <h3 className="text-sm font-medium text-muted-foreground">EXPENSES BALANCE</h3>
-                {balances.map((balance) => (
-                  <div key={balance.userId} className="flex justify-between items-center py-2 border-b">
-                    <div className="flex items-center">
-                      <Avatar className="h-8 w-8 mr-2">
-                        <AvatarImage src={balance.avatar} alt={balance.name} />
-                        <AvatarFallback>{getInitials(balance.name)}</AvatarFallback>
-                      </Avatar>
-                      <div className="font-medium text-sm sm:text-base flex items-center gap-2">
-                        {balance.name}
-                        {balance.userId === tripOrganizerId && (
-                          <span className="bg-primary/10 text-primary text-xs px-2 py-0.5 rounded-full">
-                            Organizer
-                          </span>
-                        )}
+                <h3 className="text-sm font-medium text-muted-foreground">BALANCES</h3>
+                {getNetBalances().map((balance) => (
+                  <div key={balance.userId} className="space-y-3 py-3 border-b">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center">
+                        <Avatar className="h-8 w-8 mr-2">
+                          <AvatarImage src={balance.avatar} alt={balance.name} />
+                          <AvatarFallback>{getInitials(balance.name)}</AvatarFallback>
+                        </Avatar>
+                        <div>
+                          <div className="font-medium text-sm">{balance.name}</div>
+                          {balance.totalTipsReceived && balance.totalTipsReceived > 0 && (
+                            <span className="text-xs text-muted-foreground">
+                              Tips: +${balance.totalTipsReceived.toFixed(2)}
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <div 
+                          className={`font-semibold text-sm sm:text-base ${
+                            balance.netBalance > 0 
+                              ? "text-green-600" 
+                              : balance.netBalance < 0 
+                                ? "text-red-600" 
+                                : "text-muted-foreground"
+                          }`}
+                        >
+                          {balance.netBalance === 0 ? "Settled" : (
+                            <>
+                              {balance.netBalance > 0 ? "+" : ""}${Math.abs(balance.netBalance).toFixed(2)}
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
-                    <div 
-                      className={`font-semibold text-sm sm:text-base ${
-                        balance.amount > 0 
-                          ? "text-green-600" 
-                          : balance.amount < 0 
-                            ? "text-red-600" 
-                            : ""
-                      }`}
-                    >
-                      {balance.amount > 0 ? "+" : ""}${Math.abs(balance.amount).toFixed(2)}
-                    </div>
+                    
+                    {/* Original vs Net Balance comparison */}
+                    {balance.amount !== balance.netBalance && (
+                      <div className="ml-10 text-xs text-muted-foreground">
+                        Original: ${balance.amount > 0 ? "+" : ""}${balance.amount.toFixed(2)} → 
+                        Net: ${balance.netBalance > 0 ? "+" : ""}${balance.netBalance.toFixed(2)}
+                      </div>
+                    )}
+                    
+                    {/* Settlement Actions */}
+                    {balance.userId !== currentUser.id && balance.netBalance !== 0 && (
+                      <div className="ml-10 flex space-x-2">
+                        {balance.netBalance < 0 && ( // Current user owes this person
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => openSettlementDialog({
+                              id: balance.userId,
+                              name: balance.name,
+                              avatar: balance.avatar
+                            })}
+                            className="text-xs"
+                          >
+                            <CheckCircle2 className="h-3 w-3 mr-1" />
+                            Mark as Paid
+                          </Button>
+                        )}
+                      </div>
+                    )}
+                    
+                    {/* Settlement History */}
+                    {balance.settlements.length > 0 && (
+                      <div className="ml-10 space-y-1">
+                        <div className="text-xs font-medium text-muted-foreground">Recent Settlements:</div>
+                        {balance.settlements.slice(-2).map((settlement) => (
+                          <div key={settlement.id} className="text-xs text-muted-foreground flex justify-between">
+                            <span>
+                              {settlement.fromUserId === currentUser.id ? "You paid" : "Received"} 
+                              {" "}${settlement.amount.toFixed(2)}
+                            </span>
+                            <span>{format(settlement.date, "MMM d")}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>
@@ -727,15 +841,32 @@ export default function CommunityChatPage() {
                 <div className="text-xs text-muted-foreground mb-2">
                   Positive values mean you're owed money, negative values mean you owe money.
                 </div>
-                <div className="flex justify-between">
-                  <span>Your total balance:</span>
-                  <span className={`font-semibold ${
-                    balances.find(b => b.userId === currentUser.id)?.amount! > 0 
-                      ? "text-green-600" 
-                      : "text-red-600"
-                  }`}>
-                    ${balances.find(b => b.userId === currentUser.id)?.amount.toFixed(2)}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex justify-between">
+                    <span>Your original balance:</span>
+                    <span className={`font-semibold ${
+                      balances.find(b => b.userId === currentUser.id)?.amount! > 0 
+                        ? "text-green-600" 
+                        : "text-red-600"
+                    }`}>
+                      ${balances.find(b => b.userId === currentUser.id)?.amount.toFixed(2)}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Your net balance:</span>
+                    <span className={`font-semibold ${
+                      getNetBalances().find(b => b.userId === currentUser.id)?.netBalance! > 0 
+                        ? "text-green-600" 
+                        : getNetBalances().find(b => b.userId === currentUser.id)?.netBalance! < 0
+                          ? "text-red-600"
+                          : "text-muted-foreground"
+                    }`}>
+                      {getNetBalances().find(b => b.userId === currentUser.id)?.netBalance === 0 
+                        ? "Settled" 
+                        : `$${getNetBalances().find(b => b.userId === currentUser.id)?.netBalance.toFixed(2)}`
+                      }
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -750,6 +881,17 @@ export default function CommunityChatPage() {
           onClose={() => setIsTipDialogOpen(false)}
           recipient={selectedRecipient}
           onSubmit={handleSendTip}
+        />
+      )}
+
+      {/* Settlement Dialog */}
+      {selectedRecipient && (
+        <SettlementDialog
+          isOpen={isSettlementDialogOpen}
+          onClose={() => setIsSettlementDialogOpen(false)}
+          recipient={selectedRecipient}
+          currentUserBalance={getNetBalances().find(b => b.userId === selectedRecipient.id)?.netBalance || 0}
+          onSubmit={handleSettlement}
         />
       )}
     </div>
